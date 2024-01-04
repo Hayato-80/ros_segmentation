@@ -1,2 +1,2 @@
-# ros_arm_vision
-Making real-time object recognition machine for robot arm
+# ros_segmentation
+Making real-time object recognition(semantic segmentation) for robot arm
