@@ -3,42 +3,19 @@ project(ros_segmentation)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
-
+set(OpenCV_DIR /usr/lib/aarch64-linux-gnu/cmake/opencv4)
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
+  OpenCV
   pcl_ros
   roscpp
+  rospy
   sensor_msgs
 )
 
 
-################################################
-## Declare ROS messages, services and actions ##
-################################################
-
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
-
-## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
-
-## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
-
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
+#  for this pyhton filegenerate_messages(
 #   DEPENDENCIES
 #   sensor_msgs
 # )
@@ -74,6 +51,8 @@ catkin_package()
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
+  ##include
+  ${OpenCV_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -90,7 +69,9 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(ros_segmentation src/image_processing.cpp) 
+
+add_executable(ros_segmentation src/rgbd_publisher.cpp)
+## add_executable(ros_segmentation scripts/seg.py)
 ## src/image_processing.cpp when completed
 
 ## Rename C++ executable without prefix
@@ -102,10 +83,11 @@ add_executable(ros_segmentation src/image_processing.cpp)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
+add_dependencies(ros_segmentation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 ## Specify libraries to link a library or executable target against
 target_link_libraries(ros_segmentation
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 #############
@@ -117,10 +99,10 @@ target_link_libraries(ros_segmentation
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-# catkin_install_python(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+catkin_install_python(PROGRAMS
+  scripts/seg.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
