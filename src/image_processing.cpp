@@ -9,7 +9,6 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
-#include <chrono>
 
 #include <iostream>
 #include <iomanip>
@@ -19,9 +18,6 @@ cv::Mat background_image_depth;
 const double MAX_DEPTH = 5.0;
 int image_count = 0;
 int frame_count = 0;
-const double max_duration_seconds = 3677.022203;
-
-std::chrono::time_point<std::chrono::high_resolution_clock> start_time;
 
 cv::Mat convertPointCloud2ToRGB(const sensor_msgs::PointCloud2ConstPtr& msg)
 {
@@ -54,13 +50,10 @@ cv::Mat convertPointCloud2ToCvImageDepth(const sensor_msgs::PointCloud2ConstPtr&
     return depth_image;
 }
 
-void learnBackground(const cv::Mat& depth_image)
+void obtainBackground(const cv::Mat& depth_image)
 {
     if(depth_image.empty())
         return;
-
-    //background_image_color = image.clone();
-
 
     if(background_image_depth.empty())
     {
@@ -70,18 +63,16 @@ void learnBackground(const cv::Mat& depth_image)
     {
         background_image_depth = cv::min(background_image_depth ,depth_image);
     }
-    // cv::imshow("Depth Image back", background_image_depth);
 }
 
 cv::Mat subtractBackground(const cv::Mat& input_image)
 {
     if(background_image_depth.empty())
-        learnBackground(input_image);
+        obtainBackground(input_image);
         //return;
     cv::Mat foreground_mask_depth;
     if(!background_image_depth.empty())
     {
-        //foreground_mask_depth = input_image - (background_image_depth - background_image_depth*0.0);
         foreground_mask_depth = (background_image_depth - background_image_depth*0.0) - input_image;
         cv::inRange(foreground_mask_depth, cv::Scalar(0.0125), cv::Scalar(6.0), foreground_mask_depth);
 
@@ -97,11 +88,11 @@ cv::Mat subtractBackground(const cv::Mat& input_image)
 
         cv::morphologyEx(foreground_mask_depth, foreground_mask_depth, cv::MORPH_ERODE, element, cv::Point(-1, -1), 1);
         cv::morphologyEx(foreground_mask_depth, foreground_mask_depth, cv::MORPH_OPEN, element, cv::Point(-1, -1), 2);
-        // cv::morphologyEx(foreground_mask_depth, foreground_mask_depth, cv::MORPH_CLOSE, element, cv::Point(-1, -1), 2);
-        
-        // cv::morphologyEx(foreground_mask_depth, foreground_mask_depth, cv::MORPH_DILATE, element, cv::Point(-1, -1), 1);
+    
         cv::Mat image_foreground_depth = cv::Mat::zeros(input_image.rows, input_image.cols, input_image.type());
         input_image.copyTo(image_foreground_depth, foreground_mask_depth);
+        cv::normalize(image_foreground_depth, image_foreground_depth, 0, 255, cv::NORM_MINMAX);
+        cv::threshold(image_foreground_depth, image_foreground_depth, 100, 255, cv::THRESH_BINARY);
         return image_foreground_depth;
     }
     return cv::Mat();
@@ -138,7 +129,7 @@ cv::Mat labeling(const cv::Mat& input_image){
 
 void saveImages(const cv::Mat& cv_image, const cv::Mat& depth_image,  const cv::Mat& label_image) {
     // making a rgbd image
-    cv::normalize(depth_image, depth_image, 0, 2, cv::NORM_MINMAX);
+    cv::normalize(depth_image, depth_image, 0, 255, cv::NORM_MINMAX);
     cv::Mat depth_image_8bit;
     depth_image.convertTo(depth_image_8bit, CV_8UC1);
     cv::Mat rgbd_image;
@@ -160,74 +151,44 @@ void saveImages(const cv::Mat& cv_image, const cv::Mat& depth_image,  const cv::
     if (frame_count>9){
         ROS_INFO("Saving images...");
         // set file name
-        std::ostringstream rgbd_filename_png, label_filename, depth_filename;
-        //rgbd_filename_jpg << std::setw(4) << std::setfill('0') << image_count  << ".jpg";
+        std::ostringstream rgbd_filename_png, label_filename;
         rgbd_filename_png << std::setw(4) << std::setfill('0') << image_count  << ".png";
         label_filename << std::setw(4) << std::setfill('0') << image_count << ".png";
-        depth_filename << std::setw(4) << std::setfill('0') << image_count << ".jpg";
         // save each image
-        //cv::imwrite("/home/kojima/catkin_ws/src/image_processing/datasets/images/" + rgbd_filename_jpg.str(), cv_image);
-        cv::imwrite("/home/kojima/catkin_ws/src/image_processing/datasets/images/" + rgbd_filename_png.str(), rgbd_image);
-        cv::imwrite("/home/kojima/catkin_ws/src/image_processing/datasets/labels/" + label_filename.str(), label_image);
-        cv::imwrite("/home/kojima/catkin_ws/src/image_processing/datasets/depth/" + depth_filename.str(), depth_image_8bit);
+        cv::imwrite("src/image_processing/datasets/images/" + rgbd_filename_png.str(), rgbd_image);
+        cv::imwrite("src/image_processing/datasets/labels/" + label_filename.str(), label_image);
         image_count++;
         ROS_INFO("Total images saved: %d", image_count);
     }
-    
     frame_count++;
 }
 
 void depthCallback(const sensor_msgs::PointCloud2ConstPtr& msg) {
     // Convert PointCloud2 to depth image
     ROS_INFO("Image processing has started.");
-    cv::Mat cv_image=convertPointCloud2ToRGB(msg);
+    cv::Mat cv_image = convertPointCloud2ToRGB(msg);
     cv::Mat depth_image = convertPointCloud2ToCvImageDepth(msg);
-    cv::normalize(depth_image, depth_image, 0, 64, cv::NORM_MINMAX);
 
     // Subtract background
     cv::Mat foreground = subtractBackground(depth_image);
-    cv::normalize(foreground, foreground, 0, 255, cv::NORM_MINMAX);
-    cv::threshold(foreground, foreground, 100, 255, cv::THRESH_BINARY);
+    
     cv::Mat label = labeling(foreground);
     ROS_INFO("Image processing has finished.");
     ROS_INFO("The label has been created.");
 
-    // saving image
-    // if (image_count >= 100) {
-    //     ROS_INFO("Maximum number of images reached. Stopping...");
-    //     ros::shutdown();
-    //     return;
-    // }
-    if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - start_time).count() >= max_duration_seconds) {
-        ROS_INFO("Maximum duration reached. Stopping...");
-        ros::shutdown();
-    }
-    // cv::Mat depth_image_8bit;
-    // depth_image.convertTo(depth_image_8bit, CV_8UC1);
-    // cv::Mat rgbd_image;
-    // cv::cvtColor(cv_image, rgbd_image, cv::COLOR_BGR2BGRA);  // Convert RGB to BGRA
-    // std::vector<cv::Mat> channels;
-    // cv::split(rgbd_image, channels);
-    // channels[3] = depth_image_8bit;  // Replace alpha channel with the depth image
-    // cv::merge(channels, rgbd_image);
-    //saveImages(cv_image, depth_image, label);
-    std::cout << depth_image << std::endl;
-    //std::cout << rgbd_image.channels() << std::endl;
+    saveImages(cv_image, depth_image, label);
+    
     // Display the depth image
-    // cv::imshow("cv_image", cv_image);
+    cv::imshow("cv_image", cv_image);
     cv::imshow("Depth", depth_image);
-    // cv::imshow("Foreground", foreground);
-    // cv::imshow("Label", label);
-    // // //cv::imshow("RGBD", rgbd_image);
+    cv::imshow("Foreground", foreground);
+    cv::imshow("Label", label);
     cv::waitKey(0);
-    cv::destroyAllWindows();
 }
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "image_processing");
     ros::NodeHandle nh;
-
-    start_time = std::chrono::high_resolution_clock::now();  // Record the start time
     
     ros::Subscriber depth_sub = nh.subscribe<sensor_msgs::PointCloud2>("/camera/depth_registered/points", 1000, depthCallback);
 
