@@ -52,7 +52,7 @@ cv::Mat convertPointCloud2ToCvImageDepth(const sensor_msgs::PointCloud2ConstPtr&
 
 cv::Mat publish_rgbd(const cv::Mat& cv_image, const cv::Mat& depth_image) {
     // making a rgbd image
-    cv::normalize(depth_image, depth_image, 0, 2, cv::NORM_MINMAX);
+    cv::normalize(depth_image, depth_image, 0, 255, cv::NORM_MINMAX);
     cv::Mat depth_image_8bit;
     depth_image.convertTo(depth_image_8bit, CV_8UC1);
     cv::Mat rgbd_image;
@@ -69,7 +69,8 @@ cv::Mat publish_rgbd(const cv::Mat& cv_image, const cv::Mat& depth_image) {
     // }
     channels[3] = depth_image_8bit;  // Replace alpha channel with the depth image
     cv::merge(channels, rgbd_image);
-    cv::resize(rgbd_image, rgbd_image, cv::Size(424,424));
+
+    //rgbd_image = rgbd_image/255;
     return rgbd_image;
 }
 
@@ -82,27 +83,26 @@ void ImageCallback(const sensor_msgs::PointCloud2ConstPtr& msg) {
     rgbd_img = publish_rgbd(cv_img, depth_img);
 
 
-    cv_bridge::CvImage img_bridge;
-    sensor_msgs::Image img_msg;
+    //cv_bridge::CvImage img_bridge;
+    sensor_msgs::ImagePtr img_msg;
     
-    img_bridge = cv_bridge::CvImage(std_msgs::Header(), "bgra8", rgbd_img);
+    img_msg = (cv_bridge::CvImage(std_msgs::Header(), "bgra8", rgbd_img)).toImageMsg();
 
-    img_bridge.toImageMsg(img_msg);
-
+    //img_bridge.toImageMsg(img_msg);
+    img_msg->header.stamp = msg->header.stamp;
+    img_msg->header.frame_id = msg->header.frame_id;
+    ROS_INFO("Publishing the message...");
     rgbd_pub.publish(img_msg);
-    cv::imshow("RGBD", rgbd_img);
-    cv::waitKey(0);
-    cv::destroyAllWindows();
-    
-    
+    // cv::imshow("RGBD", rgbd_img);
+    // cv::waitKey();
 }
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "rgbd_publisher");
     ros::NodeHandle nh;
-
-    ros::Subscriber img_sub = nh.subscribe<sensor_msgs::PointCloud2>("/camera/depth_registered/points", 1000, ImageCallback);
-
+    ROS_INFO("Node has been started.");
+    ros::Subscriber img_sub = nh.subscribe<sensor_msgs::PointCloud2>("/camera/depth_registered/points", 1, ImageCallback);
+    
     rgbd_pub = nh.advertise<sensor_msgs::Image>("/rgbd_image_topic",1);
     //ros::Rate loop_rate(30);
     // while(ros::ok()){
