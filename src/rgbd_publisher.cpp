@@ -52,7 +52,7 @@ cv::Mat convertPointCloud2ToCvImageDepth(const sensor_msgs::PointCloud2ConstPtr&
 
 cv::Mat publish_rgbd(const cv::Mat& cv_image, const cv::Mat& depth_image) {
     // making a rgbd image
-    cv::normalize(depth_image, depth_image, 0, 255, cv::NORM_MINMAX);
+    cv::normalize(depth_image, depth_image, 0, 2, cv::NORM_MINMAX);
     cv::Mat depth_image_8bit;
     depth_image.convertTo(depth_image_8bit, CV_8UC1);
     cv::Mat rgbd_image;
