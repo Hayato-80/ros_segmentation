@@ -3,10 +3,9 @@ project(ros_segmentation)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
-set(OpenCV_DIR /usr/lib/aarch64-linux-gnu/cmake/opencv4)
+## set(OpenCV_DIR /usr/lib/aarch64-linux-gnu/cmake/opencv4)
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
-  OpenCV
   pcl_ros
   roscpp
   rospy
@@ -51,8 +50,8 @@ catkin_package()
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  ##include
-  ${OpenCV_INCLUDE_DIRS}
+##  ##include
+##  ${OpenCV_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -71,6 +70,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 
 add_executable(ros_segmentation src/rgbd_publisher.cpp)
+#add_executable(ros_segmentation src/collection.cpp)
 ## add_executable(ros_segmentation scripts/seg.py)
 ## src/image_processing.cpp when completed
 
@@ -87,7 +87,7 @@ add_dependencies(ros_segmentation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_E
 ## Specify libraries to link a library or executable target against
 target_link_libraries(ros_segmentation
   ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
+  ##${OpenCV_LIBRARIES}
 )
 
 #############
@@ -102,6 +102,7 @@ target_link_libraries(ros_segmentation
 catkin_install_python(PROGRAMS
   scripts/seg_node
   scripts/onnx_test.py
+  scripts/tensorflow_test.py
   # # scripts/__init__.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

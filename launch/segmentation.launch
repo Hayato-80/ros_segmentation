@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="ros_segmentation" name="rgbd_publisher" type="ros_segmentation"/>
+    <node pkg="ros_segmentation" name="tensorflow_test" type="tensorflow_test.py"/>
+</launch>

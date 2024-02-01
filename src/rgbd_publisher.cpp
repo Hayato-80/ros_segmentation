@@ -47,16 +47,23 @@ cv::Mat convertPointCloud2ToCvImageDepth(const sensor_msgs::PointCloud2ConstPtr&
             depth_image.at<float>(i, j) = std::sqrt(std::pow(cloud.at(j, i).x, 2.) + std::pow(cloud.at(j, i).y, 2.) + std::pow(cloud.at(j, i).z, 2.));
         }
     }
+    double max;
+    cv::minMaxLoc(depth_image,nullptr,&max);
+    double mean=cv::mean(depth_image)[0];
+
+
+    std::cout<<max<<std::endl;
+    //std::cout<<depth_image<<std::endl;
     return depth_image;
 }
 
 cv::Mat publish_rgbd(const cv::Mat& cv_image, const cv::Mat& depth_image) {
     // making a rgbd image
-    cv::normalize(depth_image, depth_image, 0, 2, cv::NORM_MINMAX);
+    cv::normalize(depth_image, depth_image, 0, 1, cv::NORM_MINMAX);
     cv::Mat depth_image_8bit;
     depth_image.convertTo(depth_image_8bit, CV_8UC1);
     cv::Mat rgbd_image;
-    cv::cvtColor(cv_image, rgbd_image, cv::COLOR_BGR2BGRA);  // Convert RGB to BGRA
+    cv::cvtColor(cv_image, rgbd_image, cv::COLOR_BGR2RGBA);  // Convert RGB to BGRA
     std::vector<cv::Mat> channels;
     cv::split(rgbd_image, channels);
     // if (depth_image_8bit.size() != rgbd_image.size()) {
@@ -86,7 +93,7 @@ void ImageCallback(const sensor_msgs::PointCloud2ConstPtr& msg) {
     //cv_bridge::CvImage img_bridge;
     sensor_msgs::ImagePtr img_msg;
     
-    img_msg = (cv_bridge::CvImage(std_msgs::Header(), "bgra8", rgbd_img)).toImageMsg();
+    img_msg = (cv_bridge::CvImage(std_msgs::Header(), "rgba8", rgbd_img)).toImageMsg();
 
     //img_bridge.toImageMsg(img_msg);
     img_msg->header.stamp = msg->header.stamp;
