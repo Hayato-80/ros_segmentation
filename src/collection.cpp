@@ -18,6 +18,7 @@ cv::Mat background_image_depth;
 const double MAX_DEPTH = 5.0;
 int image_count = 0;
 int frame_count = 0;
+int num_image = 282;
 
 cv::Mat convertPointCloud2ToRGB(const sensor_msgs::PointCloud2ConstPtr& msg)
 {
@@ -159,6 +160,9 @@ void saveImages(const cv::Mat& cv_image, const cv::Mat& depth_image,  const cv::
         cv::imwrite("src/ros_segmentation/datasets/labels/" + label_filename.str(), label_image);
         image_count++;
         ROS_INFO("Total images saved: %d", image_count);
+        if image_count > num_image{
+            break;
+        }
     }
     frame_count++;
 }
@@ -179,11 +183,11 @@ void depthCallback(const sensor_msgs::PointCloud2ConstPtr& msg) {
     saveImages(cv_image, depth_image, label);
     
     // Display the depth image
-    cv::imshow("cv_image", cv_image);
-    cv::imshow("Depth", depth_image);
-    cv::imshow("Foreground", foreground);
-    cv::imshow("Label", label);
-    cv::waitKey(0);
+    // cv::imshow("cv_image", cv_image);
+    // cv::imshow("Depth", depth_image);
+    // cv::imshow("Foreground", foreground);
+    // cv::imshow("Label", label);
+    // cv::waitKey(0);
 }
 
 int main(int argc, char** argv) {
