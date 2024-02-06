@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 
-# import tensorflow as tf
-# from tensorflow import keras
-# from tensorflow.keras.models import load_model
-
 import sys 
 sys.path.append('/home/kojima/catkin_ws/src/ros_segmentation')
 import skimage.transform as transform
@@ -25,7 +21,7 @@ import scripts.model
 
 class SemanticSegmentationNode:
     def __init__(self):
-        #self.model = scripts.model.load_model("/home/kojima/catkin_ws/src/ros_segmentation/model/unet_test/unet_class1_v07.h5", custom_objects={'bce_dice_loss': bce_dice_loss, 'dice_coef': dice_coef},compile=False)
+        #self.model = scripts.model.load_model("/home/kojima/catkin_ws/src/ros_segmentation/model/unet_class1_v07.h5", custom_objects={'bce_dice_loss': bce_dice_loss, 'dice_coef': dice_coef},compile=False)
         self.model = scripts.model.load_model("/home/kojima/catkin_ws/src/ros_segmentation/model/unet_test", custom_objects={'bce_dice_loss': bce_dice_loss, 'dice_coef': dice_coef},compile=False)
         
         self.bridge = CvBridge()
